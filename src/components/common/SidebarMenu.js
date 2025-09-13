@@ -9,7 +9,7 @@ const SidebarMenu = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
-  const { t } = useLanguage();
+  // const { t } = useLanguage();
 
   const handleLogout = async () => {
     try {
