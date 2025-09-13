@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Star vision Cable & Broadband</title>
+    
+    <link rel="icon" type="image/png" href="images/favicon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <link rel="stylesheet" href="style.css">
+
+    <script src="script.js" type="module" defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC-9SDQFB13XFtgUnomejVuFvUCpusfUls&callback=initMap&libraries=places" defer></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div id="app">
+
+        <div id="login-view" class="flex items-center justify-center h-screen">
+            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
+                <div class="text-center mb-6">
+                    <img src="images/logo.png" alt="Star vision Logo" class="mx-auto mb-4 h-24">
+                </div>
+                <div class="mb-4">
+                    <label for="email" class="block text-gray-600 mb-2" data-lang-key="email">Email</label>
+                    <input type="email" id="email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="staff@example.com">
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-600 mb-2" data-lang-key="password">Password</label>
+                    <input type="password" id="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+                </div>
+                <button id="login-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-300" data-lang-key="login">Login</button>
+                <p id="login-error" class="text-red-500 text-sm mt-4 text-center"></p>
+            </div>
+        </div>
+
+        <div id="staff-view" class="hidden p-4 max-w-lg mx-auto">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b pb-4">
+                    <div>
+                        <h2 id="staff-view-title" class="text-xl font-bold">Record Job Activity</h2>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <img src="images/logo.png" alt="Star vision Logo" class="h-10">
+                        <select id="language-switcher-staff" class="bg-white border rounded-md px-2 py-1 text-sm hidden">
+                            <option value="en">English</option>
+                            <option value="hi">हिन्दी</option>
+                        </select>
+                        <button id="logout-btn-staff" class="text-sm text-red-500 hover:underline" data-lang-key="logout">Logout</button>
+                    </div>
+                </div>
+                
+                <div class="space-y-4 pt-4">
+                    <div>
+                        <label for="staff-name" class="block text-gray-600 mb-2"><span data-lang-key="staffNameLabel">Name</span> <span class="text-red-500">*</span></label>
+                        <select id="staff-name" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="" disabled selected data-lang-key="selectStaffName">Select your name...</option>
+                            </select>
+                        <p id="staff-name-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label for="job-type" class="block text-gray-600 mb-2"><span data-lang-key="jobType">Job Type</span> <span class="text-red-500">*</span></label>
+                        <select id="job-type" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="" disabled selected data-lang-key="selectJobType">Select a job type...</option>
+                            <option value="Installation" data-lang-key="installation">Installation</option>
+                            <option value="Maintenance" data-lang-key="maintenance">Maintenance</option>
+                            <option value="Repair" data-lang-key="repair">Repair</option>
+                        </select>
+                        <p id="job-type-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="service-area" class="block text-gray-600 mb-2"><span data-lang-key="serviceArea">Service Area</span> <span class="text-red-500">*</span></label>
+                            <select id="service-area" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="" disabled selected>Select an area...</option>
+                            </select>
+                            <p id="service-area-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label for="landmark" class="block text-gray-600 mb-2"><span data-lang-key="landmarkLabel">Landmark</span> <span class="text-red-500">*</span></label>
+                            <select id="landmark" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                                <option value="" disabled selected>Select a landmark...</option>
+                            </select>
+                            <p id="landmark-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                        </div>
+                    </div>
+                    
+                    <div id="location-section">
+                        <label for="location-search-input" class="block text-gray-600 mb-2 font-semibold"><span data-lang-key="jobLocationLabel">Job Location</span> <span class="text-red-500">*</span></label>
+                        <input type="text" id="location-search-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-lang-key-placeholder="jobLocationPlaceholder" placeholder="Search for a location...">
+                        <div id="staff-map" class="mt-2 rounded-lg"></div>
+                        <p class="text-center my-2 text-gray-500">OR</p>
+                        <button id="current-location-btn" class="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center">
+                            <span id="current-location-btn-text" data-lang-key="useCurrentLocation">Use Current Location</span>
+                            <div id="current-location-loader" class="loader h-6 w-6 border-t-gray-200 hidden"></div>
+                        </button>
+                        <p id="location-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+
+                    <div id="junction-address-container">
+                        <label for="junction-address" class="block text-gray-600 mb-2"><span data-lang-key="cableJunctionAddressLabel">Cable Junction Address</span></label>
+                        <textarea id="junction-address" rows="2" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-lang-key-placeholder="junctionAddressPlaceholder" placeholder="e.g., House #123, Near Water Tank"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="job-notes" class="block text-gray-600 mb-2"><span data-lang-key="customerDetailsLabel">Customer Details / Job Notes</span> <span class="text-red-500">*</span></label>
+                        <textarea id="job-notes" rows="3" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-lang-key-placeholder="customerDetailsPlaceholder" placeholder="Enter customer details and job notes..."></textarea>
+                        <p id="job-notes-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-2 font-semibold"><span data-lang-key="attachments">Attachments</span> <span class="text-red-500">*</span></label>
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <label for="photo" class="w-full text-center cursor-pointer bg-blue-50 text-blue-700 p-2 rounded-lg hover:bg-blue-100 font-semibold"><i class="fa-solid fa-upload mr-2"></i> <span data-lang-key="uploadPhoto">Upload Photo</span></label>
+                            <input type="file" id="photo" accept="image/*" class="hidden" multiple>
+                            <button id="open-camera-btn" class="w-full bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700 font-semibold"><i class="fa-solid fa-camera mr-2"></i> <span data-lang-key="takePhoto">Take Photo</span></button>
+                        </div>
+                        <p id="photo-error" class="text-red-500 text-sm hidden"></p>
+                        <div id="image-preview-container" class="mt-4 grid grid-cols-3 gap-2"></div>
+                        <div id="camera-view" class="hidden mt-4">
+                            <video id="camera-stream" class="w-full rounded-lg" autoplay playsinline></video><canvas id="camera-canvas" class="hidden"></canvas>
+                            <button id="capture-btn" class="w-full mt-2 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700" data-lang-key="capturePhoto">Capture Photo</button>
+                            <button id="cancel-camera-btn" class="w-full mt-2 bg-gray-400 text-black py-2 rounded-lg hover:bg-gray-500" data-lang-key="cancel">Cancel</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-4 pt-4 border-t">
+                         <button id="cancel-job-btn" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 font-semibold" data-lang-key="cancel">Cancel</button>
+                        <button id="submit-job-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center">
+                            <span id="submit-job-text" data-lang-key="submit">Submit</span>
+                            <div id="submit-job-loader" class="loader h-6 w-6 border-t-green-200 hidden"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-container" class="hidden">
+            <div id="dashboard-view">
+                <div class="p-6 bg-gray-50 min-h-screen">
+                    <div class="max-w-7xl mx-auto">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <p class="text-md text-gray-600">Cable Service Dashboard</p>
+                            </div>
+                             <div class="flex items-center gap-4">
+                                 <img src="images/logo.png" alt="Star vision Logo" class="h-12">
+                                 <div class="relative inline-block text-left">
+                                    <div>
+                                        <button type="button" id="export-menu-btn" class="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-green-600 text-sm font-medium text-white hover:bg-green-700 focus:outline-none">
+                                            Export
+                                            <svg class="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div id="export-options" class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden">
+                                        <div class="py-1" role="none">
+                                            <a href="#" id="export-excel-btn" class="text-gray-700 block px-4 py-2 text-sm" role="menuitem" tabindex="-1">Export to Excel</a>
+                                            <a href="#" id="export-pdf-btn" class="text-gray-700 block px-4 py-2 text-sm" role="menuitem" tabindex="-1">Export to PDF</a>
+                                        </div>
+                                    </div>
+                                </div>
+                                 <button id="logout-btn-admin" class="text-sm text-red-500 hover:underline" data-lang-key="logout">Logout</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                            <button id="view-map-btn" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold text-lg"><i class="fa-solid fa-map-location-dot mr-2"></i> View Map</button>
+                            <button id="track-customer-btn" class="w-full bg-teal-600 text-white py-3 rounded-lg hover:bg-teal-700 font-semibold text-lg"><i class="fa-solid fa-person-burst mr-2"></i> Track Your Customer</button>
+                            <button id="view-analytics-btn" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-semibold text-lg"><i class="fa-solid fa-chart-line mr-2"></i> View Analytics</button>
+                            <button id="manage-staff-btn" class="w-full bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 font-semibold text-lg"><i class="fa-solid fa-users mr-2"></i> Manage Staff</button>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+                                <select id="area-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Areas</option>
+                                </select>
+                                <select id="landmark-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                                    <option value="all">All Landmarks</option>
+                                </select>
+                                <select id="job-type-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Job Types</option>
+                                </select>
+                                <select id="staff-name-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Staff</option>
+                                </select>
+                                <input type="text" id="search-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search notes...">
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg mb-4 flex items-center gap-4 flex-wrap">
+                                <label class="font-semibold">Date Range:</label>
+                                <select id="dashboard-period" class="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Time</option>
+                                    <option value="month">This Month</option>
+                                    <option value="week">This Week</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                                <div id="dashboard-custom-date-range" class="hidden flex items-center gap-2">
+                                    <input type="date" id="dashboard-start-date" class="px-2 py-1 border rounded-lg">
+                                    <span>to</span>
+                                    <input type="date" id="dashboard-end-date" class="px-2 py-1 border rounded-lg">
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full bg-white dashboard-table">
+                                    <thead class="bg-gray-200">
+                                        <tr>
+                                            <th class="py-2 px-4 text-left sortable-header cursor-pointer" data-sort="area">Area <i class="fa-solid fa-sort"></i></th>
+                                            <th class="py-2 px-4 text-left sortable-header cursor-pointer" data-sort="landmark">Landmark <i class="fa-solid fa-sort"></i></th>
+                                            <th class="py-2 px-4 text-left sortable-header cursor-pointer" data-sort="category">Job Type <i class="fa-solid fa-sort"></i></th>
+                                            <th class="py-2 px-4 text-left sortable-header cursor-pointer" data-sort="staffName">Staff Name <i class="fa-solid fa-sort"></i></th>
+                                            <th class="py-2 px-4 text-left">Address</th>
+                                            <th class="py-2 px-4 text-left">Customer Details/Notes</th>
+                                            <th class="py-2 px-4 text-left sortable-header cursor-pointer" data-sort="timestamp">Timestamp <i class="fa-solid fa-sort-down"></i></th>
+                                            <th class="py-2 px-4 text-left">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-table-body"></tbody>
+                                </table>
+                                <div id="dashboard-loader" class="flex justify-center p-8"><div class="loader"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="manage-staff-view" class="hidden p-6 bg-gray-50 min-h-screen">
+                <div class="max-w-6xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Manage Staff Members</h2>
+                            <p class="text-md text-gray-600">View staff performance and manage staff members.</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button id="open-add-staff-modal-btn" class="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 font-semibold"><i class="fa-solid fa-plus mr-2"></i> Add Staff</button>
+                            <button id="back-to-dashboard-btn3" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold"><i class="fa-solid fa-arrow-left mr-2"></i> Back to Dashboard</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <div class="bg-gray-50 p-3 rounded-lg mb-4 flex items-center gap-4 flex-wrap">
+                            <label class="font-semibold">Date Range:</label>
+                            <select id="staff-perf-period" class="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="month">Current Month</option>
+                                <option value="week">This Week</option>
+                                <option value="today">Today</option>
+                                <option value="all">All Time</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                            <div id="staff-perf-custom-date-range" class="hidden flex items-center gap-2">
+                                <input type="date" id="staff-perf-start-date" class="px-2 py-1 border rounded-lg">
+                                <span>to</span>
+                                <input type="date" id="staff-perf-end-date" class="px-2 py-1 border rounded-lg">
+                            </div>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-200">
+                                    <tr>
+                                        <th class="py-2 px-4 text-left">Name</th>
+                                        <th class="py-2 px-4 text-left">Mobile Number</th>
+                                        <th class="py-2 px-4 text-center">Installation</th>
+                                        <th class="py-2 px-4 text-center">Maintenance</th>
+                                        <th class="py-2 px-4 text-center">Repair</th>
+                                        <th class="py-2 px-4 text-center">Total Jobs</th>
+                                        <th class="py-2 px-4 text-center">Leave Count</th>
+                                        <th class="py-2 px-4 text-left">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-stats-table-body">
+                                    </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="map-view" class="hidden">
+                <div class="flex flex-col md:flex-row h-screen">
+                    <div class="w-full md:w-1/3 lg:w-1/4 h-1/2 md:h-full overflow-y-auto bg-white shadow-lg p-4 flex flex-col">
+                        <div class="relative text-center mb-4 border-b pb-4">
+                            <div class="absolute top-1/2 -translate-y-1/2 right-0">
+                                 <button id="back-to-dashboard-btn" class="text-sm text-blue-500 hover:underline">Back</button>
+                            </div>
+                            <div class="w-full">
+                                 <h2 id="map-view-title" class="text-lg font-semibold text-gray-800">Job Locations</h2>
+                                 <button id="add-customer-btn" class="hidden mt-1 bg-green-600 text-white text-xs py-1 px-4 rounded-md hover:bg-green-700 font-semibold">Add</button>
+                            </div>
+                            <img id="map-view-logo" src="images/logo.png" alt="Star vision Logo" class="h-10 hidden">
+                        </div>
+                        <div class="mb-4 space-y-2">
+                            <select id="map-area-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="all">All Areas</option>
+                            </select>
+                            <div id="map-landmark-filter-container" class="hidden">
+                                <select id="map-landmark-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Landmarks</option>
+                                </select>
+                            </div>
+                            <div id="map-customer-type-filter-container" class="hidden">
+                                <select id="map-customer-type-filter" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">All Customer Types</option>
+                                    <option value="Broadband">Broadband</option>
+                                    <option value="Cable">Cable</option>
+                                    <option value="Both">Both</option>
+                                </select>
+                            </div>
+                            <input type="text" id="map-search-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search...">
+                        </div>
+                        <p id="map-list-info" class="text-sm text-gray-600 mb-4"></p>
+                        <div id="job-list" class="space-y-3 flex-grow overflow-y-auto">
+                            <div id="job-list-loader" class="flex justify-center p-8"><div class="loader"></div></div>
+                        </div>
+                    </div>
+                    <div id="map" class="w-full md:w-2/3 lg:w-3/4 h-1/2 md:h-full"></div>
+                </div>
+            </div>
+
+            <div id="analytics-view" class="hidden p-6 bg-gray-50 min-h-screen">
+                <div class="max-w-7xl mx-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-800">Area Performance Analytics</h2>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <img src="images/logo.png" alt="Star vision Logo" class="h-12">
+                            <button id="config-area-btn" class="bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 font-semibold"><i class="fa-solid fa-gear mr-2"></i> Area Configuration</button>
+                            <button id="back-to-dashboard-btn2" class="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 font-semibold"><i class="fa-solid fa-arrow-left mr-2"></i> Back to Dashboard</button>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex items-center gap-4 flex-wrap">
+                        <label class="font-semibold">Service Area:</label>
+                        <select id="analytics-area-filter" class="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </select>
+                        <label class="font-semibold">Date Range:</label>
+                        <select id="analytics-period" class="px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="all">All Time</option>
+                            <option value="month">This Month</option>
+                            <option value="week">This Week</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                        <div id="custom-date-range" class="hidden flex items-center gap-2">
+                            <input type="date" id="start-date" class="px-2 py-1 border rounded-lg">
+                            <span>to</span>
+                            <input type="date" id="end-date" class="px-2 py-1 border rounded-lg">
+                        </div>
+                    </div>
+                    <div id="analytics-results">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="customer-view" class="hidden p-4 max-w-lg mx-auto">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b pb-4">
+                    <h2 id="customer-view-title" class="text-xl font-bold">Add New Customer</h2>
+                    <img src="images/logo.png" alt="Star vision Logo" class="h-10">
+                </div>
+                
+                <div class="space-y-4 pt-4">
+                    <div>
+                        <label for="customer-staff-name" class="block text-gray-600 mb-2">Staff Name <span class="text-red-500">*</span></label>
+                        <select id="customer-staff-name" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="" disabled selected>Select staff name...</option>
+                        </select>
+                        <p id="customer-staff-name-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label for="customer-name" class="block text-gray-600 mb-2">Customer Name <span class="text-red-500">*</span></label>
+                        <input type="text" id="customer-name" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter customer's full name">
+                        <p id="customer-name-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                     <div>
+                        <label for="customer-mobile" class="block text-gray-600 mb-2">Mobile Number <span class="text-red-500">*</span></label>
+                        <input type="tel" id="customer-mobile" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter customer's mobile number">
+                        <p id="customer-mobile-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                    <div>
+                        <label for="customer-type" class="block text-gray-600 mb-2">Customer Type <span class="text-red-500">*</span></label>
+                        <select id="customer-type" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="Broadband">Broadband</option>
+                            <option value="Cable">Cable</option>
+                            <option value="Both">Both</option>
+                        </select>
+                        <p id="customer-type-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="customer-service-area" class="block text-gray-600 mb-2">Service Area <span class="text-red-500">*</span></label>
+                            <select id="customer-service-area" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="" disabled selected>Select an area...</option>
+                            </select>
+                            <p id="customer-service-area-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                        </div>
+                        <div>
+                            <label for="customer-landmark" class="block text-gray-600 mb-2">Landmark <span class="text-red-500">*</span></label>
+                            <select id="customer-landmark" class="w-full px-4 py-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" disabled>
+                                <option value="" disabled selected>Select a landmark...</option>
+                            </select>
+                            <p id="customer-landmark-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="customer-location-search-input" class="block text-gray-600 mb-2 font-semibold">Customer Location <span class="text-red-500">*</span></label>
+                        <input type="text" id="customer-location-search-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Search for a location...">
+                        <div id="customer-map" class="mt-2 rounded-lg" style="height: 250px;"></div>
+                        <p class="text-center my-2 text-gray-500">OR</p>
+                        <button id="customer-current-location-btn" class="w-full bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 flex items-center justify-center">
+                            <span id="customer-current-location-btn-text">Use Current Location</span>
+                            <div id="customer-current-location-loader" class="loader h-6 w-6 border-t-gray-200 hidden"></div>
+                        </button>
+                        <p id="customer-location-error" class="text-red-500 text-sm mt-1 hidden"></p>
+                    </div>
+
+                    <div>
+                        <label for="customer-notes" class="block text-gray-600 mb-2">Notes</label>
+                        <textarea id="customer-notes" rows="3" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter any additional notes..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-gray-600 mb-2 font-semibold">Attachments</label>
+                         <div class="grid grid-cols-2 gap-2 mb-2">
+                            <label for="customer-photo" class="w-full text-center cursor-pointer bg-blue-50 text-blue-700 p-2 rounded-lg hover:bg-blue-100 font-semibold"><i class="fa-solid fa-upload mr-2"></i> Upload Photo</label>
+                            <input type="file" id="customer-photo" accept="image/*" class="hidden" multiple>
+                            <button id="customer-open-camera-btn" class="w-full bg-gray-600 text-white p-2 rounded-lg hover:bg-gray-700 font-semibold"><i class="fa-solid fa-camera mr-2"></i> Take Photo</button>
+                        </div>
+                        <div id="customer-image-preview-container" class="mt-4 grid grid-cols-3 gap-2"></div>
+                         <div id="customer-camera-view" class="hidden mt-4">
+                            <video id="customer-camera-stream" class="w-full rounded-lg" autoplay playsinline></video>
+                            <canvas id="customer-camera-canvas" class="hidden"></canvas>
+                            <button id="customer-capture-btn" class="w-full mt-2 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">Capture Photo</button>
+                            <button id="customer-cancel-camera-btn" class="w-full mt-2 bg-gray-400 text-black py-2 rounded-lg hover:bg-gray-500">Cancel</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-4 pt-4 border-t">
+                        <button id="cancel-customer-btn" class="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 font-semibold">Cancel</button>
+                        <button id="submit-customer-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-bold flex items-center justify-center">
+                            <span id="submit-customer-text">Submit</span>
+                            <div id="submit-customer-loader" class="loader h-6 w-6 border-t-green-200 hidden"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="success-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[51]">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center">
+                <h2 id="success-modal-title" class="text-xl font-bold mb-4" data-lang-key="successTitle">Success!</h2>
+                <p id="success-modal-message" class="mb-6" data-lang-key="successMessage">Successfully logged your work.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="ok-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="delete-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
+                <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
+                <p class="mb-6">Are you sure you want to delete this job record? This action cannot be undone.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-delete-btn" class="bg-gray-300 px-6 py-2 rounded-lg">Cancel</button>
+                    <button id="confirm-delete-btn" class="bg-red-600 text-white px-6 py-2 rounded-lg w-28 h-10 flex items-center justify-center">
+                        <span id="delete-btn-text">Delete</span>
+                        <div id="delete-btn-loader" class="loader h-6 w-6 border-t-red-200 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="delete-staff-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
+                <h2 class="text-xl font-bold mb-4">Confirm Deletion</h2>
+                <p class="mb-6">Are you sure you want to remove this staff member? This will not affect past job records.</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-delete-staff-btn" class="bg-gray-300 px-6 py-2 rounded-lg">Cancel</button>
+                    <button id="confirm-delete-staff-btn" class="bg-red-600 text-white px-6 py-2 rounded-lg w-28 h-10 flex items-center justify-center">
+                        <span id="delete-staff-btn-text">Delete</span>
+                        <div id="delete-staff-btn-loader" class="loader h-6 w-6 border-t-red-200 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="add-staff-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+                <h2 class="text-xl font-bold mb-4">Add New Staff Member</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="new-staff-name-input" class="block text-gray-600 mb-2">Staff Name</label>
+                        <input type="text" id="new-staff-name-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter full name">
+                    </div>
+                    <div>
+                        <label for="new-staff-mobile-input" class="block text-gray-600 mb-2">Mobile Number</label>
+                        <input type="tel" id="new-staff-mobile-input" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter mobile number">
+                    </div>
+                </div>
+                 <p id="add-staff-error" class="text-red-500 text-sm mt-2 hidden"></p>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-add-staff-btn" class="bg-gray-300 px-6 py-2 rounded-lg">Cancel</button>
+                    <button id="confirm-add-staff-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg w-28 h-10 flex items-center justify-center">
+                        <span id="add-staff-btn-text">Save</span>
+                        <div id="add-staff-btn-loader" class="loader h-6 w-6 border-t-green-200 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="update-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm">
+                <h2 class="text-xl font-bold mb-4">Confirm Update</h2>
+                <p class="mb-6">Are you sure you want to submit these changes?</p>
+                <div class="flex justify-center gap-4">
+                    <button id="cancel-update-btn" class="bg-gray-300 px-6 py-2 rounded-lg">Cancel</button>
+                    <button id="confirm-update-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg w-28 h-10 flex items-center justify-center">
+                        <span id="update-btn-text">Update</span>
+                        <div id="update-btn-loader" class="loader h-6 w-6 border-t-blue-200 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white p-4 rounded-lg max-w-4xl max-h-full">
+                <div class="flex justify-between items-center mb-2">
+                    <h2 class="text-lg font-bold">Image Preview</h2>
+                    <button id="close-image-modal" class="text-2xl">×</button>
+                </div>
+                <div class="relative">
+                    <img id="modal-image" src="" class="max-h-[70vh] w-auto mx-auto">
+                    <button id="prev-image-btn" class="absolute top-1/2 left-2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button id="next-image-btn" class="absolute top-1/2 right-2 -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="mt-2 flex justify-center">
+                     <a id="download-image-btn" href="#" download="job-photo.jpg" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">Download Image</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="area-config-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+                <div class="flex justify-between items-center mb-4 border-b pb-4">
+                    <h2 class="text-xl font-bold">Area & Landmark Configuration</h2>
+                    <button id="close-area-config-modal-btn" class="text-2xl font-bold text-gray-600 hover:text-gray-900">×</button>
+                </div>
+
+                <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="font-semibold text-lg mb-2">Add New Service Area</h3>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-area-name-input" class="flex-grow px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter new area name">
+                        <button id="add-area-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 font-semibold">Add Area</button>
+                    </div>
+                </div>
+
+                <div class="flex-grow overflow-y-auto pr-2 space-y-4">
+                    <label for="area-config-select" class="font-semibold">Select an Area to Edit:</label>
+                    <select id="area-config-select" class="w-full p-2 border rounded-lg bg-white">
+                        <option value="">-- Select Area --</option>
+                    </select>
+
+                    <div id="landmark-editor-container" class="hidden mt-4 p-3 border rounded-lg">
+                        <div class="flex justify-between items-center mb-3">
+                            <h4 class="font-bold text-lg">Manage Landmarks</h4>
+                            <button id="delete-area-btn" class="bg-red-500 text-white text-sm py-1 px-3 rounded-md hover:bg-red-700" title="Delete This Area">
+                                <i class="fa-solid fa-trash-alt mr-1"></i> Delete Area
+                            </button>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto border rounded-md p-2 bg-gray-50 mb-3">
+                            <ul id="landmark-list-editor" class="space-y-1">
+                                </ul>
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                            <input type="text" id="new-landmark-input" class="flex-grow px-3 py-1 border rounded-md" placeholder="Add new landmark">
+                            <button id="add-landmark-btn" class="bg-blue-500 text-white px-3 py-1 text-sm rounded-md hover:bg-blue-600">Add</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t flex justify-end">
+                    <button id="save-area-changes-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 font-bold">Save Changes</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="leave-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 id="leave-modal-title" class="text-xl font-bold">Manage Leaves for...</h2>
+                    <button id="close-leave-modal-btn" class="text-2xl font-bold text-gray-600 hover:text-gray-900">×</button>
+                </div>
+                <div id="leave-calendar-container">
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button id="cancel-leaves-btn" class="bg-gray-300 px-6 py-2 rounded-lg">Cancel</button>
+                    <button id="save-leaves-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg w-28 h-10 flex items-center justify-center">
+                        <span id="save-leaves-btn-text">Save</span>
+                        <div id="save-leaves-btn-loader" class="loader h-6 w-6 border-t-blue-200 hidden"></div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="leave-dates-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h2 id="leave-dates-modal-title" class="text-lg font-bold">Leave Dates</h2>
+                    <button id="close-leave-dates-modal-btn" class="text-2xl font-bold text-gray-600 hover:text-gray-900">×</button>
+                </div>
+                <div id="leave-dates-list-container" class="max-h-60 overflow-y-auto">
+                    </div>
+                <div class="flex justify-end mt-4">
+                    <button id="ok-leave-dates-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
