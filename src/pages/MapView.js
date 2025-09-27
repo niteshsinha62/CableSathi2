@@ -29,6 +29,7 @@ const MapView = () => {
   const [infoWindows, setInfoWindows] = useState([]);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
   const [singleJobMode, setSingleJobMode] = useState(false);
+  const [mobileView, setMobileView] = useState('list'); // 'list', 'map'
 
   useEffect(() => {
     // Initialize map when Google Maps is loaded
@@ -539,9 +540,41 @@ const MapView = () => {
         </button>
       </Header>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Mobile View Toggle Buttons */}
+      <div className="md:hidden bg-white border-b border-gray-200 px-4 py-2">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setMobileView('list')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mobileView === 'list' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <i className="fas fa-list mr-2"></i>
+            List View
+          </button>
+          <button
+            onClick={() => setMobileView('map')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mobileView === 'map' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <i className="fas fa-map mr-2"></i>
+            Map View
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden md:flex-row">
         {/* Sidebar */}
-        <div className="w-full md:w-1/3 lg:w-1/4 bg-white shadow-lg flex flex-col">
+        <div className={`bg-white shadow-lg flex flex-col ${
+          mobileView === 'list' 
+            ? 'w-full md:w-1/3 lg:w-1/4' 
+            : 'hidden md:flex md:w-1/3 lg:w-1/4'
+        }`}>
           {/* Filters - Hide in single job mode */}
           {!singleJobMode && (
             <div className="p-4 border-b border-gray-200">
@@ -613,23 +646,30 @@ const MapView = () => {
                 }`}
                 onClick={() => {
                   const coords = job.coordinates || job.location;
-                  if (coords && map) {
-                    // Find the marker for this job
-                    const marker = markers.find(m => m.jobId === job.id);
-                    if (marker) {
-                      // Close any active info window first
-                      if (activeInfoWindow) {
-                        activeInfoWindow.close();
-                        setActiveInfoWindow(null);
+                  if (coords) {
+                    // On mobile, switch to map view when clicking a job
+                    if (window.innerWidth < 768) {
+                      setMobileView('map');
+                    }
+                    
+                    if (map) {
+                      // Find the marker for this job
+                      const marker = markers.find(m => m.jobId === job.id);
+                      if (marker) {
+                        // Close any active info window first
+                        if (activeInfoWindow) {
+                          activeInfoWindow.close();
+                          setActiveInfoWindow(null);
+                        }
+                        
+                        // Open the info window for this marker
+                        marker.infoWindow.open(map, marker);
+                        setActiveInfoWindow(marker.infoWindow);
+                        
+                        // Navigate to the marker location
+                        map.panTo({ lat: parseFloat(coords.lat), lng: parseFloat(coords.lng) });
+                        map.setZoom(16);
                       }
-                      
-                      // Open the info window for this marker
-                      marker.infoWindow.open(map, marker);
-                      setActiveInfoWindow(marker.infoWindow);
-                      
-                      // Navigate to the marker location
-                      map.panTo({ lat: parseFloat(coords.lat), lng: parseFloat(coords.lng) });
-                      map.setZoom(16);
                     }
                   }
                 }}
@@ -657,14 +697,18 @@ const MapView = () => {
         </div>
       </div>
 
-      {/* Map */}
-      <div className="flex-1">
-        <div ref={mapRef} className="w-full h-full"></div>
+        {/* Map */}
+        <div className={`${
+          mobileView === 'list' 
+            ? 'hidden md:flex md:flex-1' 
+            : 'flex-1'
+        }`}>
+          <div ref={mapRef} className="w-full h-full"></div>
+        </div>
       </div>
-    </div>
 
-    {/* Job Detail Modal */}
-    {showJobModal && selectedJob && (
+      {/* Job Detail Modal */}
+      {showJobModal && selectedJob && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg w-full max-w-md max-h-96 overflow-hidden">
           {/* Modal Header */}
@@ -776,10 +820,10 @@ const MapView = () => {
           </div>
         </div>
       </div>
-    )}
+      )}
 
-    <MobileBottomNav />
-  </div>
+      <MobileBottomNav />
+    </div>
   );
 };
 

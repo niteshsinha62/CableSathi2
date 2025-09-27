@@ -117,3 +117,14 @@ code {
     -webkit-tap-highlight-color: transparent;
   }
 }
+
+/* Company name display optimization */
+.company-name-display {
+  max-width: 12rem; /* 192px on mobile */
+}
+
+@media (min-width: 640px) {
+  .company-name-display {
+    max-width: 20rem; /* 320px on desktop */
+  }
+}

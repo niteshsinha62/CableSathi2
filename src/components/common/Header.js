@@ -12,11 +12,12 @@ const Header = ({ showLanguageSwitch = true }) => {
   const navigate = useNavigate();
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [operatorName, setOperatorName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [nameLoading, setNameLoading] = useState(true);
   const dropdownRef = useRef(null);
 
-  // Fetch operator name from Firestore
-  const fetchOperatorName = async () => {
+  // Fetch operator data from Firestore
+  const fetchOperatorData = async () => {
     if (!user?.uid) {
       setNameLoading(false);
       return;
@@ -28,25 +29,30 @@ const Header = ({ showLanguageSwitch = true }) => {
       if (operatorDoc.exists()) {
         const data = operatorDoc.data();
         setOperatorName(data.name || '');
+        setCompanyName(data.companyName || '');
       } else {
-        setOperatorName('');
+        // const staffDoc = await getDoc(doc(db, 'staffs', user.uid));
+        // const data = staffDoc.data();
+        setOperatorName('Agent');
+        setCompanyName('Starvision Cable & Broadband');
       }
     } catch (error) {
-      console.error('Error fetching operator name:', error);
+      console.error('Error fetching operator data:', error);
       setOperatorName('');
+      setCompanyName('');
     } finally {
       setNameLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOperatorName();
+    fetchOperatorData();
   }, [user?.uid]);
 
   // Listen for profile updates
   useEffect(() => {
     const handleProfileUpdate = () => {
-      fetchOperatorName();
+      fetchOperatorData();
     };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
@@ -101,29 +107,42 @@ const Header = ({ showLanguageSwitch = true }) => {
     <div className="bg-white shadow-sm sticky top-0 z-50 header-container">
       <div className="max-w-full mx-auto px-3 sm:px-6">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center min-w-0 flex-1">
+          <div className="flex items-center min-w-0 flex-1 overflow-hidden">
             {user && <SidebarMenu />}
-            <div className="flex items-center ml-2 sm:ml-3 min-w-0">
-              <span className="font-medium text-base sm:text-lg whitespace-nowrap">
-                <span className="text-black">Cable</span>
-                <span className="text-orange-500">Sathi</span>
-              </span>
-              <span className="text-gray-400 mx-1 sm:mx-2 text-base sm:text-lg hidden sm:inline">|</span>
-              <img src="/logo.png" alt="CableSathi Logo" className="h-8 sm:h-12 w-auto object-contain hidden sm:block" onError={(e) => {e.target.style.display='none'}} />
+            <div className="flex items-center ml-2 sm:ml-3 min-w-0 flex-1">
+              <div className="flex flex-col">
+                <span className="font-medium text-base sm:text-lg whitespace-nowrap flex-shrink-0">
+                  <span className="text-black">Cable</span>
+                  <span className="text-orange-500">Sathi</span>
+                </span>
+                {/* Mobile only: Company name below CableSathi */}
+                {companyName && (
+                  <span className="text-gray-600 text-xs font-medium truncate md:hidden" title={companyName}>
+                    {companyName}
+                  </span>
+                )}
+              </div>
+              {/* Desktop only: Company name with separator */}
+              {companyName && (
+                <>
+                  <span className="text-gray-400 mx-1 sm:mx-2 text-base sm:text-lg flex-shrink-0 hidden md:inline">|</span>
+                  <span 
+                    className="text-gray-700 font-medium text-xs sm:text-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-48 sm:max-w-80 hidden md:inline"
+                    title={companyName}
+                  >
+                    {companyName}
+                  </span>
+                </>
+              )}
             </div>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
-            {user && !nameLoading ? (
-              operatorName ? (
-                <span className="text-gray-800 text-xs sm:text-sm font-medium whitespace-nowrap max-w-24 sm:max-w-none truncate header-greeting no-select">
-                  Hello, {getFirstName(operatorName)}
-                </span>
-              ) : (
-                <span className="text-gray-800 text-xs sm:text-sm font-medium whitespace-nowrap header-greeting no-select">
-                  Hello, User
-                </span>
-              )
-            ) : null}
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+            {/* Profile name beside profile icon for both mobile and desktop */}
+            {user && !nameLoading && operatorName && (
+              <span className="text-gray-800 text-xs sm:text-sm font-medium whitespace-nowrap max-w-32 sm:max-w-64 truncate header-greeting no-select">
+                Hello, {getFirstName(operatorName)}
+              </span>
+            )}
             
             <div className="relative">
               <button
@@ -135,24 +154,24 @@ const Header = ({ showLanguageSwitch = true }) => {
                 </div>
               </button>
 
-              {showProfileDropdown && (
-                <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
-                  <button
-                    onClick={handleProfileClick}
-                    className="block w-full text-left px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-white hover:bg-gray-600 active:bg-gray-500"
-                  >
-                    <i className="fas fa-user-circle mr-2"></i>
-                    My Profile
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-white hover:bg-gray-600 active:bg-gray-500"
-                  >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
-                    Logout
-                  </button>
-                </div>
-              )}
+                {showProfileDropdown && (
+                  <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-gray-700 rounded-md shadow-lg py-1 z-50">
+                    <button
+                      onClick={handleProfileClick}
+                      className="block w-full text-left px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-white hover:bg-gray-600 active:bg-gray-500"
+                    >
+                      <i className="fas fa-user-circle mr-2"></i>
+                      My Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-3 sm:px-4 py-2.5 sm:py-2 text-sm text-white hover:bg-gray-600 active:bg-gray-500"
+                    >
+                      <i className="fas fa-sign-out-alt mr-2"></i>
+                      Logout
+                    </button>
+                  </div>
+                )}
             </div>
           </div>
         </div>

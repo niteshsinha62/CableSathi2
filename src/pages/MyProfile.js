@@ -15,12 +15,14 @@ const MyProfile = () => {
   const [operatorData, setOperatorData] = useState({
     name: '',
     contact: '',
-    email: ''
+    email: '',
+    companyName: ''
   });
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
-    email: ''
+    email: '',
+    companyName: ''
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -50,7 +52,8 @@ const MyProfile = () => {
         const defaultData = {
           name: '',
           contact: '',
-          email: user.email || ''
+          email: user.email || '',
+          companyName: ''
         };
         
         // Create the operator document in Firestore
@@ -88,6 +91,11 @@ const MyProfile = () => {
       return;
     }
 
+    if (formData.companyName.length > 30) {
+      setMessage({ type: 'error', text: 'Company name must be 30 characters or less' });
+      return;
+    }
+
     try {
       setSaving(true);
       setMessage({ type: '', text: '' });
@@ -95,7 +103,8 @@ const MyProfile = () => {
       const updateData = {
         name: formData.name.trim(),
         contact: formData.contact.trim(),
-        email: formData.email || user.email || '' // Use email from form, fallback to auth email
+        email: formData.email || user.email || '', // Use email from form, fallback to auth email
+        companyName: formData.companyName.trim()
       };
 
       // Check if document exists first
@@ -204,6 +213,25 @@ const MyProfile = () => {
                 placeholder="Enter your contact number"
                 required
               />
+            </div>
+
+            <div>
+              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-2">
+                Company Name
+              </label>
+              <input
+                type="text"
+                id="companyName"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleInputChange}
+                maxLength="30"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                placeholder="Enter your company name (max 30 characters)"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                This will be displayed in the header ({formData.companyName.length}/30 characters)
+              </p>
             </div>
 
             <div>

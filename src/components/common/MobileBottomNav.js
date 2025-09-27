@@ -10,14 +10,14 @@ const MobileBottomNav = () => {
   const { t } = useLanguage();
 
   const staffNavItems = [
-    { path: '/staff', icon: 'fa-clipboard-list', label: t('recordJobActivity') }
+    { path: '/staff', icon: 'fa-plus-circle', label: 'Job Entry' }
   ];
 
   const adminNavItems = [
-    { path: '/admin', icon: 'fa-chart-line', label: t('dashboard') },
-    { path: '/map', icon: 'fa-map-location-dot', label: t('viewMap') },
-    { path: '/analytics', icon: 'fa-chart-bar', label: t('viewAnalytics') },
-    { path: '/staff-management', icon: 'fa-users', label: t('manageStaff') }
+    { path: '/analytics', icon: 'fa-home', label: 'Home' },
+    { path: '/customers', icon: 'fa-person-burst', label: 'Customers' },
+    { path: '/staff-management', icon: 'fa-users', label: 'Staffs' },
+    { path: '/map', icon: 'fa-map-location-dot', label: 'Map' }
   ];
 
   const navItems = isAdmin ? adminNavItems : staffNavItems;

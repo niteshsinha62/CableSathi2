@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { collection, onSnapshot, query, orderBy, doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useLanguage } from '../contexts/LanguageContext';
 import Header from '../components/common/Header';
@@ -10,10 +10,13 @@ import MobileBottomNav from '../components/common/MobileBottomNav';
 const CustomerMapView = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const mapRef = useRef(null);
   const { t } = useLanguage();
   const [map, setMap] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [allCustomerData, setAllCustomerData] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
   const [serviceAreas, setServiceAreas] = useState([]);
   const [markers, setMarkers] = useState([]);
@@ -26,6 +29,8 @@ const CustomerMapView = () => {
   const [selectedJob, setSelectedJob] = useState(null);
   const [infoWindows, setInfoWindows] = useState([]);
   const [activeInfoWindow, setActiveInfoWindow] = useState(null);
+  const [singleCustomerMode, setSingleCustomerMode] = useState(false);
+  const [mobileView, setMobileView] = useState('list'); // 'list', 'map'
 
   useEffect(() => {
     // Initialize map when Google Maps is loaded
@@ -63,46 +68,181 @@ const CustomerMapView = () => {
     
     initMap();
 
-    // Listen for jobs - only Installation jobs for customer tracking
-    const jobsQuery = query(collection(db, 'jobs'), orderBy('timestamp', 'desc'));
-    const unsubscribeJobs = onSnapshot(jobsQuery, (snapshot) => {
-      const jobsData = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        timestamp: doc.data().timestamp
-      }));
-      // Filter only Installation jobs
-      const installationJobs = jobsData.filter(job => job.category === 'Installation');
-      setJobs(installationJobs);
-    });
+    // Check if we're in single customer mode
+    const urlParams = new URLSearchParams(location.search);
+    const customerId = urlParams.get('customerId');
+    
+    if (customerId) {
+      setSingleCustomerMode(true);
+      // Fetch single customer and related job
+      const fetchSingleCustomer = async () => {
+        try {
+          console.log('Fetching single customer with ID:', customerId);
+          
+          // Try to fetch from jobs collection first (since most CustomerView records are installation jobs)
+          const jobDoc = await getDoc(doc(db, 'jobs', customerId));
+          if (jobDoc.exists()) {
+            const jobData = { id: jobDoc.id, ...jobDoc.data() };
+            console.log('Found job:', jobData);
+            // Only include if it's an Installation job
+            if (jobData.category === 'Installation') {
+              setJobs([jobData]);
+              setCustomers([]); // No direct customers needed
+              return; // Exit early if we found the job
+            } else {
+              console.log('Job is not Installation category:', jobData.category);
+            }
+          }
+          
+          // If not found in jobs or not Installation, try customers collection
+          const customerDoc = await getDoc(doc(db, 'customers', customerId));
+          if (customerDoc.exists()) {
+            const customerData = { id: customerDoc.id, ...customerDoc.data() };
+            console.log('Found customer:', customerData);
+            setCustomers([customerData]);
+            setJobs([]); // No jobs needed if we have direct customer
+          } else {
+            console.log('No customer or job found with ID:', customerId);
+            // Set empty data to show "no data" state
+            setCustomers([]);
+            setJobs([]);
+          }
+        } catch (error) {
+          console.error('Error fetching single customer:', error);
+          setCustomers([]);
+          setJobs([]);
+        }
+      };
+      fetchSingleCustomer();
+      
+      // Still need service areas for single customer mode
+      const areasQuery = query(collection(db, 'serviceAreas'), orderBy('name'));
+      const unsubscribeAreas = onSnapshot(areasQuery, (snapshot) => {
+        const areas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setServiceAreas(areas);
+      });
 
-    // Listen for service areas
-    const areasQuery = query(collection(db, 'serviceAreas'), orderBy('name'));
-    const unsubscribeAreas = onSnapshot(areasQuery, (snapshot) => {
-      const areas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setServiceAreas(areas);
-    });
+      return () => {
+        unsubscribeAreas();
+        // Clean up global functions
+        delete window.openInMaps;
+        delete window.shareJobLocation;
+        delete window.shareJobPhoto;
+        delete window.closeInfoWindow;
+      };
+    } else {
+      setSingleCustomerMode(false);
+      // Listen for all jobs - only Installation jobs for customer tracking
+      const jobsQuery = query(collection(db, 'jobs'), orderBy('timestamp', 'desc'));
+      const unsubscribeJobs = onSnapshot(jobsQuery, (snapshot) => {
+        const jobsData = snapshot.docs.map(doc => ({ 
+          id: doc.id, 
+          ...doc.data(),
+          timestamp: doc.data().timestamp
+        }));
+        // Filter only Installation jobs
+        const installationJobs = jobsData.filter(job => job.category === 'Installation');
+        setJobs(installationJobs);
+      });
 
-    return () => {
-      unsubscribeJobs();
-      unsubscribeAreas();
-      // Clean up global functions
-      delete window.openInMaps;
-      delete window.shareJobLocation;
-      delete window.shareJobPhoto;
-      delete window.closeInfoWindow;
-    };
-  }, []);
+      // Listen for customers
+      const customersQuery = query(collection(db, 'customers'), orderBy('timestamp', 'desc'));
+      const unsubscribeCustomers = onSnapshot(customersQuery, (snapshot) => {
+        const customersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setCustomers(customersData);
+      });
+
+      // Listen for service areas
+      const areasQuery = query(collection(db, 'serviceAreas'), orderBy('name'));
+      const unsubscribeAreas = onSnapshot(areasQuery, (snapshot) => {
+        const areas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setServiceAreas(areas);
+      });
+
+      return () => {
+        unsubscribeJobs();
+        unsubscribeCustomers();
+        unsubscribeAreas();
+        // Clean up global functions
+        delete window.openInMaps;
+        delete window.shareJobLocation;
+        delete window.shareJobPhoto;
+        delete window.closeInfoWindow;
+      };
+    }
+  }, [location.search]);
+
+  // Combine customers and installation jobs for display (like CustomerView)
+  useEffect(() => {
+    const installationJobs = jobs.map(job => {
+      const customerInfo = parseCustomerInfoFromNotes(job.notes || '');
+      return {
+        id: job.id,
+        customerName: customerInfo.name || 'Unknown Customer',
+        mobile: customerInfo.mobile || 'No Mobile',
+        notes: customerInfo.notes || job.notes || '',
+        customerType: customerInfo.customerType || job.customerType || 'Installation',
+        area: job.area || '',
+        landmark: job.landmark || '',
+        staffName: job.staffName || '',
+        status: job.status || 'Active',
+        timestamp: job.timestamp,
+        location: job.location,
+        coordinates: job.coordinates,
+        address: job.address || job.customerAddress || '',
+        sourceJobId: job.id,
+        // Preserve image fields for info window display
+        photoURLs: job.photoURLs,
+        photos: job.photos
+      };
+    });
+    
+    // Process customers from customers collection to match expected format
+    const processedCustomers = customers.map(customer => {
+      return {
+        id: customer.id,
+        customerName: customer.customerName || customer.name || 'Unknown Customer',
+        mobile: customer.mobile || customer.contact || 'No Mobile',
+        notes: customer.notes || '',
+        customerType: customer.customerType || 'Customer',
+        area: customer.area || customer.serviceArea || '',
+        landmark: customer.landmark || '',
+        staffName: customer.staffName || 'N/A',
+        status: customer.status || 'Active',
+        timestamp: customer.timestamp,
+        location: customer.location,
+        coordinates: customer.coordinates,
+        address: customer.address || customer.customerAddress || '',
+        sourceJobId: customer.sourceJobId || customer.id,
+        // Preserve image fields for info window display
+        photoURLs: customer.photoURLs,
+        photos: customer.photos
+      };
+    });
+    
+    const allCustomers = [...processedCustomers, ...installationJobs];
+    setAllCustomerData(allCustomers);
+  }, [jobs, customers]);
 
   useEffect(() => {
     applyFilters();
-  }, [jobs, filters]);
+  }, [allCustomerData, filters]);
 
   useEffect(() => {
     if (map) {
       updateMapMarkers();
+      // Auto-center and zoom to single customer if in single customer mode
+      if (singleCustomerMode && allCustomerData.length === 1) {
+        const customer = allCustomerData[0];
+        const coords = customer.coordinates || customer.location;
+        if (coords && coords.lat && coords.lng) {
+          map.setCenter({ lat: parseFloat(coords.lat), lng: parseFloat(coords.lng) });
+          map.setZoom(16);
+        }
+      }
     }
-  }, [map, filteredJobs]);
+  }, [map, filteredJobs, singleCustomerMode, allCustomerData]);
+
 
   const initializeMap = () => {
     const mapInstance = new window.google.maps.Map(mapRef.current, {
@@ -122,33 +262,36 @@ const CustomerMapView = () => {
   };
 
   const applyFilters = () => {
-    console.log('CustomerMapView - Total Installation jobs:', jobs.length);
     
-    let filtered = [...jobs];
+    let filtered = [...allCustomerData];
 
-    if (filters.area !== 'all') {
-      filtered = filtered.filter(job => job.area === filters.area);
+    // In single customer mode, don't apply filters - show the single customer
+    if (!singleCustomerMode) {
+      if (filters.area !== 'all') {
+        filtered = filtered.filter(customer => customer.area === filters.area);
+      }
+
+      if (filters.landmark !== 'all') {
+        filtered = filtered.filter(customer => customer.landmark === filters.landmark);
+      }
+
+      if (filters.status !== 'all') {
+        filtered = filtered.filter(customer => (customer.status || 'Active') === filters.status);
+      }
+
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        filtered = filtered.filter(customer =>
+          customer.notes?.toLowerCase().includes(searchTerm) ||
+          customer.address?.toLowerCase().includes(searchTerm) ||
+          customer.customerAddress?.toLowerCase().includes(searchTerm) ||
+          customer.staffName?.toLowerCase().includes(searchTerm) ||
+          customer.customerName?.toLowerCase().includes(searchTerm) ||
+          customer.mobile?.includes(searchTerm)
+        );
+      }
     }
 
-    if (filters.landmark !== 'all') {
-      filtered = filtered.filter(job => job.landmark === filters.landmark);
-    }
-
-    if (filters.status !== 'all') {
-      filtered = filtered.filter(job => (job.status || 'Active') === filters.status);
-    }
-
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(job =>
-        job.notes?.toLowerCase().includes(searchTerm) ||
-        job.address?.toLowerCase().includes(searchTerm) ||
-        job.customerAddress?.toLowerCase().includes(searchTerm) ||
-        job.staffName?.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    console.log('CustomerMapView - Final filtered customers:', filtered.length);
     setFilteredJobs(filtered);
   };
 
@@ -192,7 +335,6 @@ const CustomerMapView = () => {
       return false;
     });
     
-    console.log('CustomerMapView - Jobs with valid coordinates for markers:', jobsWithCoordinates.length);
     
     jobsWithCoordinates.forEach((job, index) => {
       try {
@@ -209,55 +351,53 @@ const CustomerMapView = () => {
           animation: window.google.maps.Animation.DROP
         });
 
-        // Parse customer info from notes
-        const customerInfo = parseCustomerInfoFromNotes(job.notes || '');
-        
-        // Create info window for this marker
+        // Create info window for this marker using processed customer data
         const photoUrl = (job.photoURLs && job.photoURLs.length > 0) ? job.photoURLs[0] : 
                         (job.photos && job.photos.length > 0) ? job.photos[0] : null;
+        
         
         const infoWindow = new window.google.maps.InfoWindow({
           disableAutoPan: false,
           content: `
-            <div style="width: 280px; font-family: Arial, sans-serif;">
+            <div style="width: 300px; font-family: Arial, sans-serif;">
               <div style="position: relative;">
                 <div style="margin-bottom: 12px;">
                   <h3 style="margin: 0 0 4px 0; font-size: 18px; font-weight: bold; color: #333;">
-                    ${customerInfo.name || 'Customer'} <span style="font-size: 14px; color: #666; font-weight: normal;">(${job.area}, ${job.landmark})</span>
+                    ${job.customerName || 'Customer'} <span style="font-size: 14px; color: #666; font-weight: normal;">(${job.area}, ${job.landmark})</span>
                   </h3>
                   <div style="display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; ${job.status === 'Active' ? 'background: #dcfce7; color: #166534;' : 'background: #fecaca; color: #991b1b;'}">
                     ${job.status || 'Active'}
                   </div>
                 </div>
                 
-                ${customerInfo.mobile !== 'No Contact' ? `
+                ${job.mobile && job.mobile !== 'No Mobile' ? `
                   <div style="margin-bottom: 12px;">
                     <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.4;">
-                      <span style="font-weight: bold; color: #333;">Mobile:</span> ${customerInfo.mobile}
+                      <span style="font-weight: bold; color: #333;">📱 Contact:</span> ${job.mobile}
                     </p>
                   </div>
                 ` : ''}
                 
-                ${customerInfo.customerType !== 'Installation' ? `
+                ${job.customerType ? `
                   <div style="margin-bottom: 12px;">
                     <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.4;">
-                      <span style="font-weight: bold; color: #333;">Type:</span> ${customerInfo.customerType}
+                      <span style="font-weight: bold; color: #333;">🏷️ Type:</span> ${job.customerType}
                     </p>
                   </div>
                 ` : ''}
                 
-                ${job.customerAddress || job.address ? `
+                ${job.address ? `
                   <div style="margin-bottom: 12px;">
                     <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.4;">
-                      <span style="font-weight: bold; color: #333;">Address:</span> ${job.customerAddress || job.address}
+                      <span style="font-weight: bold; color: #333;">📍 Address:</span> ${job.address}
                     </p>
                   </div>
                 ` : ''}
                 
-                ${customerInfo.notes ? `
+                ${job.notes && job.notes.trim() ? `
                   <div style="margin-bottom: 12px;">
                     <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.4;">
-                      <span style="font-weight: bold; color: #333;">Notes:</span> ${customerInfo.notes}
+                      <span style="font-weight: bold; color: #333;">📝 Notes:</span> ${job.notes}
                     </p>
                   </div>
                 ` : ''}
@@ -269,15 +409,19 @@ const CustomerMapView = () => {
                   </div>
                 ` : ''}
                 
-                <div style="margin-bottom: 12px; display: flex; align-items: center; font-size: 13px; color: #666;">
-                  <span style="margin-right: 8px;">👨‍💼</span>
-                  <span>Staff: ${job.staffName}</span>
-                </div>
+                ${job.staffName && job.staffName !== 'N/A' ? `
+                  <div style="margin-bottom: 12px; display: flex; align-items: center; font-size: 13px; color: #666;">
+                    <span style="margin-right: 8px;">👨‍💼</span>
+                    <span>Staff: ${job.staffName}</span>
+                  </div>
+                ` : ''}
                 
-                <div style="margin-bottom: 16px; display: flex; align-items: center; font-size: 13px; color: #666;">
-                  <span style="margin-right: 8px;">📅</span>
-                  <span>${new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleDateString()}, ${new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleTimeString()}</span>
-                </div>
+                ${job.timestamp ? `
+                  <div style="margin-bottom: 16px; display: flex; align-items: center; font-size: 13px; color: #666;">
+                    <span style="margin-right: 8px;">📅</span>
+                    <span>${new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleDateString()}, ${new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                ` : ''}
                 
                 <div style="display: flex; gap: 4px;">
                   <button onclick="window.openInMaps('${coords.lat}', '${coords.lng}')" 
@@ -358,6 +502,54 @@ const CustomerMapView = () => {
       map.setCenter({ lat: 25.5941, lng: 85.1376 });
       map.setZoom(11);
     }
+  };
+
+  const focusOnCustomer = (customerId) => {
+    if (!map || !allCustomerData.length) return;
+
+    // Find the specific customer by ID
+    const targetCustomer = allCustomerData.find(customer => customer.id === customerId);
+    
+    if (!targetCustomer) {
+      console.log('Customer not found with ID:', customerId);
+      return;
+    }
+
+    // Get coordinates
+    const coords = targetCustomer.coordinates || targetCustomer.location;
+    if (!coords || !coords.lat || !coords.lng) {
+      console.log('No coordinates found for customer:', customerId);
+      return;
+    }
+
+    const lat = parseFloat(coords.lat);
+    const lng = parseFloat(coords.lng);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      console.log('Invalid coordinates for customer:', customerId);
+      return;
+    }
+
+    // Center map on the customer location
+    map.setCenter({ lat, lng });
+    map.setZoom(16); // Close zoom level to focus on the specific location
+
+    // Find and open the info window for this customer
+    setTimeout(() => {
+      const marker = markers.find(marker => marker.jobId === customerId);
+
+      if (marker && marker.infoWindow) {
+        // Close any open info windows
+        if (activeInfoWindow) {
+          activeInfoWindow.close();
+        }
+        
+        // Open the info window for this customer
+        marker.infoWindow.open(map, marker);
+        setActiveInfoWindow(marker.infoWindow);
+        setSelectedJob(targetCustomer);
+      }
+    }, 500); // Small delay to ensure markers are created
   };
 
   // Parse customer information from job notes
@@ -476,12 +668,12 @@ const CustomerMapView = () => {
       alert('Location link copied to clipboard!');
     }
   };
-
   const shareImages = (job) => {
     const images = job.photoURLs || job.photos || [];
     if (images.length > 0) {
       const imageUrls = Array.isArray(images) ? images : images.split(',');
-      const text = `Customer Images for ${job.staffName} - Installation\n${imageUrls.join('\n')}`;
+      const customerName = job.customerName || 'Customer';
+      const text = `Customer Images for ${customerName}\nType: ${job.customerType || 'Customer'}\nContact: ${job.mobile || 'N/A'}\n\nImages:\n${imageUrls.join('\n')}`;
       
       if (navigator.share && navigator.canShare && navigator.canShare({ text })) {
         navigator.share({
@@ -490,11 +682,11 @@ const CustomerMapView = () => {
         }).catch(err => {
           console.log('Share cancelled or failed:', err);
           navigator.clipboard.writeText(text);
-          alert('Image links copied to clipboard!');
+          alert('Customer image URLs copied to clipboard!');
         });
       } else {
         navigator.clipboard.writeText(text);
-        alert('Image links copied to clipboard!');
+        alert('Customer image URLs copied to clipboard!');
       }
     } else {
       alert('No images available for this customer.');
@@ -524,12 +716,45 @@ const CustomerMapView = () => {
         </button>
       </Header>
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Mobile View Toggle Buttons */}
+      <div className="md:hidden bg-white border-b border-gray-200 px-4 py-2">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setMobileView('list')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mobileView === 'list' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <i className="fas fa-list mr-2"></i>
+            List View
+          </button>
+          <button
+            onClick={() => setMobileView('map')}
+            className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mobileView === 'map' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            <i className="fas fa-map mr-2"></i>
+            Map View
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden md:flex-row">
         {/* Sidebar */}
-        <div className="w-full md:w-1/3 lg:w-1/4 bg-white shadow-lg flex flex-col">
-          {/* Filters */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="space-y-3">
+        <div className={`bg-white shadow-lg flex flex-col ${
+          mobileView === 'list' 
+            ? 'w-full md:w-1/3 lg:w-1/4' 
+            : 'hidden md:flex md:w-1/3 lg:w-1/4'
+        }`}>
+          {/* Filters - Hide in single customer mode */}
+          {!singleCustomerMode && (
+            <div className="p-4 border-b border-gray-200">
+              <div className="space-y-3">
               <select
                 value={filters.area}
                 onChange={(e) => setFilters(prev => ({ ...prev, area: e.target.value, landmark: 'all' }))}
@@ -573,15 +798,22 @@ const CustomerMapView = () => {
               />
             </div>
           </div>
+          )}
 
         {/* Results Summary */}
         <div className="mb-4 text-sm text-gray-600 p-4">
-          Showing {filteredJobs.length} Installation customers
-          {filteredJobs.length === 0 && jobs.length > 0 && (
-            <span className="text-orange-600 ml-2">- Try adjusting your filters</span>
-          )}
-          {jobs.length === 0 && (
-            <span className="text-red-600 ml-2">- No customer data available</span>
+          {singleCustomerMode ? (
+            <span className="text-blue-600 font-medium">Single Customer View</span>
+          ) : (
+            <>
+              Showing {filteredJobs.length} Installation customers
+              {filteredJobs.length === 0 && allCustomerData.length > 0 && (
+                <span className="text-orange-600 ml-2">- Try adjusting your filters</span>
+              )}
+              {allCustomerData.length === 0 && (
+                <span className="text-red-600 ml-2">- No customer data available</span>
+              )}
+            </>
           )}
         </div>
 
@@ -589,7 +821,6 @@ const CustomerMapView = () => {
         <div className="flex-1 overflow-y-auto p-4">
           <div className="space-y-3">
             {filteredJobs.map((job) => {
-              const customerInfo = parseCustomerInfoFromNotes(job.notes || '');
               return (
                 <div
                   key={job.id}
@@ -600,41 +831,45 @@ const CustomerMapView = () => {
                   }`}
                   onClick={() => {
                     const coords = job.coordinates || job.location;
-                    if (coords && map) {
-                      // Find the marker for this job
-                      const marker = markers.find(m => m.jobId === job.id);
-                      if (marker) {
-                        // Close any active info window first
-                        if (activeInfoWindow) {
-                          activeInfoWindow.close();
-                          setActiveInfoWindow(null);
+                    if (coords) {
+                      // On mobile, switch to map view when clicking a customer
+                      if (window.innerWidth < 768) {
+                        setMobileView('map');
+                      }
+                      
+                      if (map) {
+                        // Find the marker for this job
+                        const marker = markers.find(m => m.jobId === job.id);
+                        if (marker) {
+                          // Close any active info window first
+                          if (activeInfoWindow) {
+                            activeInfoWindow.close();
+                            setActiveInfoWindow(null);
+                          }
+                          
+                          // Open the info window for this marker
+                          marker.infoWindow.open(map, marker);
+                          setActiveInfoWindow(marker.infoWindow);
+                          
+                          // Navigate to the marker location
+                          map.panTo({ lat: parseFloat(coords.lat), lng: parseFloat(coords.lng) });
+                          map.setZoom(16);
                         }
-                        
-                        // Open the info window for this marker
-                        marker.infoWindow.open(map, marker);
-                        setActiveInfoWindow(marker.infoWindow);
-                        
-                        // Navigate to the marker location
-                        map.panTo({ lat: parseFloat(coords.lat), lng: parseFloat(coords.lng) });
-                        map.setZoom(16);
                       }
                     }
                   }}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-sm">{customerInfo.name}</h3>
+                    <h3 className="font-semibold text-sm text-gray-900">{job.customerName || 'Customer'}</h3>
                     <span className={`text-xs px-2 py-1 rounded-full ${
                       job.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
                       {job.status || 'Active'}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 mb-1">{job.area} - {job.landmark}</p>
-                  <p className="text-xs text-gray-600 mb-1">Mobile: {customerInfo.mobile}</p>
-                  <p className="text-xs text-gray-600 mb-1">Type: {customerInfo.customerType}</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleDateString()}, {new Date(job.timestamp?.toDate?.() || job.timestamp).toLocaleTimeString()}
-                  </p>
+                  <p className="text-xs text-gray-600 mb-1">📍 {job.area} - {job.landmark}</p>
+                  <p className="text-xs text-gray-600 mb-1">📱 {job.mobile || 'No contact'}</p>
+                  <p className="text-xs text-gray-500">🏷️ {job.customerType || 'Customer'}</p>
                 </div>
               );
             })}
@@ -642,14 +877,18 @@ const CustomerMapView = () => {
         </div>
       </div>
 
-      {/* Map */}
-      <div className="flex-1">
-        <div ref={mapRef} className="w-full h-full"></div>
+        {/* Map */}
+        <div className={`${
+          mobileView === 'list' 
+            ? 'hidden md:flex md:flex-1' 
+            : 'flex-1'
+        }`}>
+          <div ref={mapRef} className="w-full h-full"></div>
+        </div>
       </div>
-    </div>
 
-    <MobileBottomNav />
-  </div>
+      <MobileBottomNav />
+    </div>
 );
 };
 

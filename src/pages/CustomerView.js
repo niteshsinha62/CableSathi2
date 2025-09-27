@@ -289,14 +289,27 @@ const CustomerView = () => {
   };
 
   const handleNavigateToCustomer = (customer) => {
-    // Open map view in new tab focused on this customer
-    const mapUrl = `/map?focus=${customer.id}&type=customer`;
+    // Navigate to Google Maps for directions
+    if (customer.coordinates) {
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${customer.coordinates.lat},${customer.coordinates.lng}`;
+      window.open(googleMapsUrl, '_blank');
+    } else if (customer.location) {
+      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${customer.location.lat},${customer.location.lng}`;
+      window.open(googleMapsUrl, '_blank');
+    } else {
+      alert('Location coordinates not available for this customer.');
+    }
+  };
+
+  const handleViewCustomerOnMap = (customer) => {
+    // Open customer map view focused on this specific customer (same behavior as AdminDashboard but with CustomerMapView)
+    const mapUrl = `/customer-map?customerId=${customer.id}`;
     window.open(mapUrl, '_blank');
   };
 
-  const handleViewCustomersOnMap = () => {
-    // Open map view showing only Installation job customers
-    const mapUrl = '/map?filter=installation&view=customers';
+  const handleViewAllCustomersOnMap = () => {
+    // Open map view showing all customers
+    const mapUrl = '/customer-map';
     window.open(mapUrl, '_blank');
   };
 
@@ -522,7 +535,7 @@ const CustomerView = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
-                    onClick={() => window.open('/customer-map', '_blank')}
+                    onClick={() => handleViewAllCustomersOnMap()}
                     className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
                   >
                     <i className="fas fa-map-marked-alt mr-2"></i>
@@ -664,7 +677,7 @@ const CustomerView = () => {
                         Delete
                       </button>
                       <button
-                        onClick={() => window.open('/customer-map', '_blank')}
+                        onClick={() => handleViewCustomerOnMap(customer)}
                         className="text-green-600 hover:text-green-800 text-xs px-2 py-1 rounded bg-green-100 hover:bg-green-200"
                       >
                         <i className="fas fa-map-marker-alt mr-1"></i>
@@ -802,6 +815,13 @@ const CustomerView = () => {
                                 title="Navigate"
                               >
                                 <i className="fas fa-directions text-sm"></i>
+                              </button>
+                              <button
+                                onClick={() => handleViewCustomerOnMap(customer)}
+                                className="text-green-600 hover:text-green-800 p-1 rounded hover:bg-green-50 transition-colors"
+                                title="View on Map"
+                              >
+                                <i className="fas fa-map-marker-alt text-sm"></i>
                               </button>
                               <button
                                 onClick={() => handleEditCustomer(customer)}
