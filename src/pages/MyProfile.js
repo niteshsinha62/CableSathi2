@@ -26,7 +26,7 @@ const MyProfile = () => {
 
   useEffect(() => {
     fetchOperatorData();
-  }, [user]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchOperatorData = async () => {
     if (!user?.uid) return;
@@ -37,19 +37,30 @@ const MyProfile = () => {
       
       if (operatorDoc.exists()) {
         const data = operatorDoc.data();
-        setOperatorData(data);
-        setFormData(data);
+        // Ensure email is populated from operator data or fallback to auth email
+        const operatorData = {
+          ...data,
+          email: data.email || user.email || ''
+        };
+        
+        setOperatorData(operatorData);
+        setFormData(operatorData);
       } else {
-        // If no operator document exists, use email from auth
+        // If no operator document exists, create default data and save to Firestore
         const defaultData = {
           name: '',
           contact: '',
           email: user.email || ''
         };
+        
+        // Create the operator document in Firestore
+        await setDoc(doc(db, 'operators', user.uid), defaultData);
+        
         setOperatorData(defaultData);
         setFormData(defaultData);
       }
     } catch (error) {
+      console.error('Error loading profile data:', error);
       setMessage({ type: 'error', text: 'Error loading profile data' });
     } finally {
       setLoading(false);
@@ -84,17 +95,29 @@ const MyProfile = () => {
       const updateData = {
         name: formData.name.trim(),
         contact: formData.contact.trim(),
-        email: formData.email // Keep email as is (read-only)
+        email: formData.email || user.email || '' // Use email from form, fallback to auth email
       };
 
-      // Use setDoc with merge option to create document if it doesn't exist
-      await setDoc(doc(db, 'operators', user.uid), updateData, { merge: true });
+      // Check if document exists first
+      const operatorDocRef = doc(db, 'operators', user.uid);
+      const operatorDoc = await getDoc(operatorDocRef);
+      
+      if (operatorDoc.exists()) {
+        // Update existing document
+        await updateDoc(operatorDocRef, updateData);
+      } else {
+        // Create new document if it doesn't exist (fallback)
+        await setDoc(operatorDocRef, updateData);
+      }
       
       setOperatorData(updateData);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
       
       // Refresh user data in AuthContext to update header
       await refreshUserData();
+      
+      // Dispatch custom event to update header
+      window.dispatchEvent(new CustomEvent('profileUpdated'));
     } catch (error) {
       setMessage({ type: 'error', text: 'Error updating profile. Please try again.' });
     } finally {
@@ -148,6 +171,7 @@ const MyProfile = () => {
               {message.text}
             </div>
           )}
+
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
