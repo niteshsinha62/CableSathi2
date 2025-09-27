@@ -196,13 +196,20 @@ const JobsTable = ({ jobs, onDeleteJob, onEditJob, sortBy, sortOrder, onSort }) 
                   <i className="fas fa-edit mr-1"></i>
                   Edit
                 </button>
+                <button
+                  onClick={() => window.open(`/map?jobId=${job.id}`, '_blank')}
+                  className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 touch-target"
+                >
+                  <i className="fas fa-map-marker-alt mr-1"></i>
+                  View Map
+                </button>
                 {job.coordinates && (
                   <>
                     <button
                       onClick={() => openInMaps(job.coordinates.lat, job.coordinates.lng)}
                       className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 touch-target"
                     >
-                      <i className="fas fa-map-marker-alt mr-1"></i>
+                      <i className="fas fa-external-link-alt mr-1"></i>
                       Navigate
                     </button>
                     <button
